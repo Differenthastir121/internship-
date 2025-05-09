@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Emotion Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <style>
+    body { text-align: center; font-family: sans-serif; background: #111; color: white; }
+    canvas, video { border-radius: 12px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Real-Time Emotion Detector</h1>
+  <video id="webcam" autoplay playsinline width="224" height="224"></video>
+  <p id="emotion">Detecting...</p>
+
+  <script>
+    let model, webcamEl;
+
+    const labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"];
+
+    async function setup() {
+      model = await tf.loadLayersModel('tfjs_model/model.json'); // path to your model
+      webcamEl = document.getElementById('webcam');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      webcamEl.srcObject = stream;
+      setInterval(detectEmotion, 300);
+    }
+
+    async function detectEmotion() {
+      const videoTensor = tf.browser.fromPixels(webcamEl)
+        .resizeNearestNeighbor([48, 48])
+        .mean(2)
+        .expandDims(-1)
+        .expandDims(0)
+        .div(255.0);
+      const prediction = model.predict(videoTensor);
+      const predIndex = prediction.argMax(-1).dataSync()[0];
+      document.getElementById('emotion').innerText = "😊 Emotion: " + labels[predIndex];
+      tf.dispose([videoTensor, prediction]);
+    }
+
+    setup();
+  </script>
+</body>
+</html>
